@@ -1,31 +1,43 @@
 package main
 
-import (
-	"fmt"
-	"io"
+import ("github.com/LuvArora443/MicroservicesInGo/handlers"
 	"log"
+	"os"
 	"net/http"
+	"time"
+	"context"
+	"os/signal"
+	"syscall"
 )
 
+
 func main(){
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		log.Println("Hello")
-		d, err := io.ReadAll(r.Body)
+	l := log.New(os.Stdout, "product-api", log.LstdFlags)
+	hh := handlers.NewHello(l)
+	gh := handlers.NewGoodbye(l)
+	sm := http.NewServeMux()
+	sm.Handle("/", hh)
+	sm.Handle("/goodbye",gh)
+
+	s := &http.Server{
+		Addr: ":9090",
+		Handler: sm,
+		IdleTimeout: 120*time.Second,
+		ReadTimeout: 1*time.Second,
+		WriteTimeout: 1*time.Second,
+	}
+	go func(){
+		err:= s.ListenAndServe()
 		if err!=nil{
-			// w.WriteHeader(http.StatusBadRequest)
-			// w.Write([]byte("OOPS"))
-			// can use the above code or use the below alternate
-			http.Error(w, "OOPS", http.StatusBadRequest)
-			return
+			l.Fatal(err)
 		}
+	}()
 
-		// log.Printf("Data: %s", d)
-		fmt.Fprintf(w, "Hello %s\n", d)
-	})
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	sig := <-sigChan
+	l.Println("Received terminate, graceful shutdown", sig)
 
-	http.HandleFunc("/goodbye", func(w http.ResponseWriter, r *http.Request) {
-		log.Println("Goodbye")
-	})
-
-	http.ListenAndServe(":9090",nil)
+	tc, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	s.Shutdown(tc)
 }
