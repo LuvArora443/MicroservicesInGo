@@ -25,6 +25,7 @@ func main(){
 		WriteTimeout: 1*time.Second,
 	}
 	go func(){
+		l.Println("Server running on 9090")
 		err:= s.ListenAndServe()
 		if err!=nil{
 			l.Fatal(err)
