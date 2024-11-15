@@ -1,21 +1,34 @@
 package main
 
-import ("github.com/LuvArora443/MicroservicesInGo/handlers"
-	"log"
-	"os"
-	"net/http"
-	"time"
+import (
 	"context"
+	"log"
+	"net/http"
+	"os"
 	"os/signal"
 	"syscall"
+	"time"
+
+	"github.com/LuvArora443/MicroservicesInGo/handlers"
+	"github.com/gorilla/mux"
 )
 
 
 func main(){
 	l := log.New(os.Stdout, "product-api", log.LstdFlags)
 	ph := handlers.NewProducts(l)
-	sm := http.NewServeMux()
-	sm.Handle("/", ph)
+	sm := mux.NewRouter()
+	getRouter := sm.Methods(http.MethodGet).Subrouter()
+	getRouter.HandleFunc("/", ph.GetProducts)
+
+	putRouter := sm.Methods(http.MethodPut).Subrouter()
+	putRouter.HandleFunc("/{id:[0-9]+}", ph.UpdateProducts)
+	putRouter.Use(ph.MiddlewareProductValidation)
+	
+	postRouter := sm.Methods(http.MethodPost).Subrouter()
+	postRouter.HandleFunc("/", ph.AddProduct)
+	postRouter.Use(ph.MiddlewareProductValidation)
+
 
 	s := &http.Server{
 		Addr: ":9090",
