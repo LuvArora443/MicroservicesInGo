@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"time"
+	gohandlers "github.com/gorilla/handlers"
 
 	"github.com/LuvArora443/MicroservicesInGo/data"
 	"github.com/LuvArora443/MicroservicesInGo/handlers"
@@ -50,10 +51,13 @@ func main() {
 	getR.Handle("/docs", sh)
 	getR.Handle("/swagger.yaml", http.FileServer(http.Dir("./")))
 
+	//CORS
+	ch:=gohandlers.CORS(gohandlers.AllowedOrigins([]string{"*"}))
+
 	// create a new server
 	s := http.Server{
 		Addr:         ":9090",      // configure the bind address
-		Handler:      sm,                // set the default handler
+		Handler:      ch(sm),                // set the default handler
 		ErrorLog:     l,                 // set the logger for the server
 		ReadTimeout:  5 * time.Second,   // max time to read request from the client
 		WriteTimeout: 10 * time.Second,  // max time to write response to the client
